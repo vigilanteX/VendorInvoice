@@ -54,8 +54,9 @@ namespace project31oct.Repository
                     DataContext.Invoices.Add(newInvoice).State = Microsoft.EntityFrameworkCore.EntityState.Added;
                     //return true;
                 }
+                await DataContext.SaveChangesAsync().ConfigureAwait(false);
+
             }
-            await DataContext.SaveChangesAsync().ConfigureAwait(false);
             return true;
         }
     }

@@ -26,14 +26,20 @@ namespace project31oct.Controllers
         public IHostingEnvironment HostingEnvironment { get; }
         public ISQLRepository SQLRepository { get; }
 
+        public class UploadForm
+        {
+            public IFormFile FormFile { get; set; }
+        }
+
         [HttpPost]
         [Route("Upload")]
-        public async Task<IActionResult> UploadAsync(IFormFile formFile)
+        [DisableRequestSizeLimit]
+        public async Task<IActionResult> UploadAsync([FromForm] UploadForm upload)
         {
-            var fileName = $"{HostingEnvironment.WebRootPath}\\files\\{formFile.FileName}";
+            var fileName = $"{HostingEnvironment.WebRootPath}\\files\\{upload.FormFile.FileName}";
             using (var filestream = System.IO.File.Create(fileName))
             {
-                formFile.CopyTo(filestream);
+                upload.FormFile.CopyTo(filestream);
                 filestream.Flush();
             }
 

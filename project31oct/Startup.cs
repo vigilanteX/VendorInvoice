@@ -31,6 +31,7 @@ namespace project31oct
             services.AddDbContextPool<DataContext>(
             options => options.UseSqlServer(Configuration.GetConnectionString("invoicegenconnectionstring")));
             services.AddTransient<ISQLRepository, SQLRepository>();
+            services.AddCors();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -40,7 +41,7 @@ namespace project31oct
             {
                 app.UseDeveloperExceptionPage();
             }
-
+            app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
             app.UseMvc();
         }
     }
