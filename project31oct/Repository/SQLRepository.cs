@@ -16,8 +16,14 @@ namespace project31oct.Repository
 
         public DataContext DataContext { get; }
 
-        public async Task<bool> UploadDataAsync(IList<UploadModel> uploadModels)
+        public async Task<DataReturn> UploadDataAsync(IList<UploadModel> uploadModels)
         {
+            var initialVendorCount = DataContext.Vendors.Count();
+            var finalVendorCount = 0;
+            var initialInvoiceCount = DataContext.Invoices.Count();
+            var finalInvoiceCount = 0;
+            var totalAmount = 0.00m;
+            var invalidCount = 0;
             foreach (var model in uploadModels)
             {
                 var isInvoiceExists = DataContext.Invoices.Any(x => x.InvoiceNumbers == model.InvoiceNumbers);
@@ -52,12 +58,28 @@ namespace project31oct.Repository
                     };
 
                     DataContext.Invoices.Add(newInvoice).State = Microsoft.EntityFrameworkCore.EntityState.Added;
+                    totalAmount += newInvoice.Amount;
                     //return true;
+                }
+                else 
+                {
+                    invalidCount ++;
                 }
                 await DataContext.SaveChangesAsync().ConfigureAwait(false);
 
             }
-            return true;
+
+            finalInvoiceCount = DataContext.Invoices.Count();
+            finalVendorCount = DataContext.Vendors.Count();
+
+            var returnModel = new DataReturn
+            {
+                TotalInvoices = finalInvoiceCount - initialInvoiceCount,
+                TotalVendors = finalVendorCount - initialVendorCount,
+                SumOfAmount = totalAmount,
+                InvalidInvoiceCount = invalidCount
+            };
+            return returnModel;
         }
     }
 }

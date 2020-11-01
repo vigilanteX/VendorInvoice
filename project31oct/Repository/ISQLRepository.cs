@@ -8,6 +8,6 @@ namespace project31oct.Repository
 {
     public interface ISQLRepository
     {
-        Task<bool> UploadDataAsync(IList<UploadModel> uploadModels);
+        Task<DataReturn> UploadDataAsync(IList<UploadModel> uploadModels);
     }
 }

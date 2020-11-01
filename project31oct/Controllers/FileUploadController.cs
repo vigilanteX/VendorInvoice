@@ -34,14 +34,7 @@ namespace project31oct.Controllers
         }
 
 
-        [HttpGet]
-        [Route("GetDetail")]
-        public async Task<IActionResult> GetDetail()
-        {
-            SQLRepository.
-
-        }
-
+        
 
 
 
@@ -73,11 +66,11 @@ namespace project31oct.Controllers
                 });
             }
             var result = await SQLRepository.UploadDataAsync(uploadModel).ConfigureAwait(false);
-            if (!result)
+            if (result == null)
             {
                 return BadRequest();
             }
-            return NoContent();
+            return Ok(result);
 
         }
 
