@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using ExcelDataReader;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity.UI.V3.Pages.Internal;
 using Microsoft.AspNetCore.Mvc;
 using OfficeOpenXml;
 using project31oct.Model;
@@ -31,6 +33,18 @@ namespace project31oct.Controllers
             public IFormFile FormFile { get; set; }
         }
 
+
+        [HttpGet]
+        [Route("GetDetail")]
+        public async Task<IActionResult> GetDetail()
+        {
+            SQLRepository.
+
+        }
+
+
+
+
         [HttpPost]
         [Route("Upload")]
         [DisableRequestSizeLimit]
@@ -43,21 +57,25 @@ namespace project31oct.Controllers
                 filestream.Flush();
             }
 
-            try
+            var uploadModel = this.UploadInDB(fileName);
+            if (uploadModel.Any(u => u.Errors?.Count() > 0))
             {
-                var uploadModel = this.UploadInDB(fileName);
+                var uploadModels = uploadModel.Where(u => u.Errors.Count() > 0);
+                var errors = "";
+                foreach (var item in uploadModel)
+                {
+                    errors = errors + item.Errors;
+                }
 
-           
+                return BadRequest(new Errors
+                {
+                    Error = errors
+                });
+            }
             var result = await SQLRepository.UploadDataAsync(uploadModel).ConfigureAwait(false);
             if (!result)
             {
                 return BadRequest();
-            }
-            }
-            catch (Exception ex)
-            {
-
-                throw;
             }
             return NoContent();
 
@@ -73,31 +91,46 @@ namespace project31oct.Controllers
             using (var stream = System.IO.File.Open(fName, FileMode.Open, FileAccess.Read))
             {
                 using (var reader = ExcelReaderFactory.CreateReader(stream))
-                { 
-                    
+                {
+                    bool isHeader = false;
                     while (reader.Read())
                     {
-                        if (reader.GetValue(0).ToString() == "Invoice Numbers")
+                        if (!isHeader && reader?.GetValue(0)?.ToString() == "Invoice Numbers")
                         {
+                            isHeader = true;
                             continue;
                         }
                         var uploadModel = new UploadModel
                         {
                             InvoiceNumbers = int.TryParse(reader.GetValue(0)?.ToString(), out var invoiceNumber) ? invoiceNumber : 0,
                             DocumentNumber = int.TryParse(reader.GetValue(1)?.ToString(), out var docNumber) ? docNumber : 0,
-                            DocumentType= reader.GetValue(2)?.ToString(),
-                            NetDueDate= DateTime.TryParse(reader.GetValue(3)?.ToString(), out var netduedate) ? netduedate : new DateTime(),
+                            DocumentType = reader.GetValue(2)?.ToString(),
+                            NetDueDate = DateTime.TryParse(reader.GetValue(3)?.ToString(), out var netduedate) ? netduedate : new DateTime(),
                             DocumentDate = DateTime.TryParse(reader.GetValue(4)?.ToString(), out var docdate) ? docdate : new DateTime(),
                             PostingDate = DateTime.TryParse(reader.GetValue(5)?.ToString(), out var postingdate) ? postingdate : new DateTime(),
-                            Amount=decimal.TryParse(reader.GetValue(6)?.ToString(), out var amnt ) ? amnt : 0,
-                            VendorCode= reader.GetValue(7)?.ToString(),
-                            VendorName= reader.GetValue(8)?.ToString(),
-                            VendorType= reader.GetValue(9)?.ToString(),
+                            Amount = decimal.TryParse(reader.GetValue(6)?.ToString(), out var amnt) ? amnt : 0,
+                            VendorCode = reader.GetValue(7)?.ToString(),
+                            VendorName = reader.GetValue(8)?.ToString(),
+                            VendorType = reader.GetValue(9)?.ToString(),
 
 
-                            
+
                         };
 
+                        var context = new ValidationContext(uploadModel, serviceProvider: null, items: null);
+                        var validationResults = new List<ValidationResult>();
+
+                        bool isValid = Validator.TryValidateObject(uploadModel, context, validationResults, true);
+                        if (!isValid)
+                        {
+                            var errors = "";
+                            validationResults.ForEach(x =>
+                            {
+                                errors = errors + x.ErrorMessage + ", ";
+                            });
+
+                            uploadModel.Errors = errors;
+                        }
                         uploadedModels.Add(uploadModel);
                     }
                 }
@@ -105,8 +138,10 @@ namespace project31oct.Controllers
 
             return uploadedModels;
         }
+    }
 
-
-
+    public class Errors
+    {
+        public string Error { get; set; }
     }
 }
